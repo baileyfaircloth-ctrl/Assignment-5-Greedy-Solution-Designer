@@ -33,7 +33,19 @@ def maximize_deliveries(time_windows):
         ]
         maximize_deliveries(time_windows) returns ['A', 'C']
     """
-    # TODO: Implement greedy algorithm for activity selection
+
+    # Sort deliveries by the time they finish.
+    sorted_deliveries = sorted(time_windows, key=lambda delivery: delivery['end'])
+
+    selected = []
+    last_end = float('-inf')
+
+    for delivery in sorted_deliveries:
+        if delivery['start'] >= last_end:
+            selected.append(delivery['delivery_id'])
+            last_end = delivery['end']
+
+    return selected
     # Hint: What greedy choice gives you the most room for future deliveries?
     # Hint: Think about sorting by a specific attribute
     
@@ -72,7 +84,51 @@ def optimize_truck_load(packages, weight_limit):
         weight_limit = 50
         optimize_truck_load(packages, 50) returns packages A (full), B (full), C (partial)
     """
-    # TODO: Implement greedy algorithm for fractional knapsack
+
+    # Sort packages by priority value per pound, highest first.
+    sorted_packages = sorted(
+        packages,
+        key=lambda package: package['priority'] / package['weight']
+        if package['weight'] > 0 else float('inf'),
+        reverse=True
+    )
+
+    total_priority = 0.0
+    total_weight = 0.0
+    loaded_packages = []
+    remaining_capacity = weight_limit
+
+    for package in sorted_packages:
+        if remaining_capacity <= 0:
+            break
+
+        weight = package['weight']
+        priority = package['priority']
+
+        if weight <= 0:
+            continue
+
+        # Take the whole package if it fits.
+        if weight <= remaining_capacity:
+            fraction = 1.0
+        else:
+            # Otherwise, take only the fraction that fits.
+            fraction = remaining_capacity / weight
+
+        loaded_packages.append({
+            'package_id': package['package_id'],
+            'fraction': fraction
+        })
+
+        total_weight += weight * fraction
+        total_priority += priority * fraction
+        remaining_capacity -= weight * fraction
+
+    return {
+        'total_priority': total_priority,
+        'total_weight': total_weight,
+        'packages': loaded_packages
+    }
     # Hint: What ratio determines which packages are most valuable per pound?
     # Hint: You can take fractions - if you have 5 lbs capacity left and a 10 lb package, take 0.5 of it
     
@@ -108,7 +164,36 @@ def minimize_drivers(deliveries):
         ]
         minimize_drivers(deliveries) returns 2 drivers: [[A, C], [B]]
     """
-    # TODO: Implement greedy algorithm for interval scheduling
+
+    # Sort deliveries by their start times.
+    sorted_deliveries = sorted(
+        deliveries, key=lambda delivery: delivery['start']
+    )
+
+    # Each entry stores the finish time of a driver's last delivery.
+    driver_end_times = []
+    assignments = []
+
+    for delivery in sorted_deliveries:
+        assigned = False
+
+        # Find the first driver who is available.
+        for i in range(len(driver_end_times)):
+            if driver_end_times[i] <= delivery['start']:
+                assignments[i].append(delivery['delivery_id'])
+                driver_end_times[i] = delivery['end']
+                assigned = True
+                break
+
+        # If every driver is busy, add another driver.
+        if not assigned:
+            assignments.append([delivery['delivery_id']])
+            driver_end_times.append(delivery['end'])
+
+    return {
+        'num_drivers': len(assignments),
+        'assignments': assignments
+    }
     # Hint: How do you know if a delivery overlaps with another?
     # Hint: Can you assign a delivery to an existing driver, or do you need a new one?
     
@@ -295,11 +380,11 @@ if __name__ == "__main__":
     print("GREEDY ALGORITHMS ASSIGNMENT - STARTER CODE")
     print("Implement the greedy functions above, then run tests.\n")
     
-    # Uncomment these as you complete each part:
+    Uncomment these as you complete each part:
     
-    # test_package_prioritization()
-    # test_truck_loading()
-    # test_driver_assignment()
-    # benchmark_scenarios()
+    test_package_prioritization()
+    test_truck_loading()
+    test_driver_assignment()
+    benchmark_scenarios()
     
     print("\n⚠ Uncomment the test functions in the main block to run tests!")
